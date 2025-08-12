@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { Link, useNavigate } from 'react-router-dom'
 import { X, Sparkles, Brush, Scissors, Heart, Scale, ShoppingBag } from 'lucide-react'
+import { useEffect } from 'react'
 import { useCart } from '@/store/cart'
 import { useFavorites } from '@/store/favorites'
 import { useCompare } from '@/store/compare'
@@ -17,6 +18,20 @@ export default function MobileMenu({ open, onClose }: { open: boolean; onClose: 
   const cmpCount = useCompare(s=>s.ids.length)
   const nav = useNavigate()
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    if (open) {
+      document.documentElement.classList.add('no-scroll')
+      window.addEventListener('keydown', onKey)
+    } else {
+      document.documentElement.classList.remove('no-scroll')
+    }
+    return () => {
+      document.documentElement.classList.remove('no-scroll')
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [open, onClose])
+
   const goto = (path: string) => { onClose(); nav(path) }
 
   return (
@@ -24,16 +39,17 @@ export default function MobileMenu({ open, onClose }: { open: boolean; onClose: 
       {open && (
         <>
           <motion.div
-            className="fixed inset-0 z-50 bg-black/40"
+            className="fixed inset-0 z-[95] bg-black/40"
             onClick={onClose}
             initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
           />
           <motion.aside
-            className="fixed inset-y-0 left-0 z-50 w-[86%] max-w-[360px] bg-white p-4 shadow-2xl"
+            className="fixed inset-y-0 left-0 z-[100] w-[86%] max-w-[360px] bg-white p-4 shadow-2xl
+                       max-h-[100svh] overflow-y-auto overscroll-contain"
             initial={{x:-20, opacity:0}} animate={{x:0, opacity:1}} exit={{x:-20, opacity:0}}
             transition={{ type:'spring', stiffness:300, damping:30 }}
           >
-            <div className="mb-4 flex items-center justify-between">
+            <div className="mb-4 flex items-center justify-between safe-top">
               <div className="text-lg font-semibold">Навигация</div>
               <button onClick={onClose} aria-label="Закрыть" className="rounded-lg border p-2"><X className="h-5 w-5" /></button>
             </div>

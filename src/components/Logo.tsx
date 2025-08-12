@@ -1,12 +1,8 @@
 export default function Logo({ className = '' }: { className?: string }) {
   return (
-    <div className={className} aria-label="Mira">
-      <svg viewBox="0 0 120 36" className="h-8 w-auto">
-        <rect width="120" height="36" rx="10" className="fill-brand-600"/>
-        <text x="16" y="24" className="fill-white" style={{font: '700 18px/1 Inter, system-ui'}}>
-          Mira
-        </text>
-      </svg>
+    <div className={`flex items-center gap-2 ${className}`}>
+      <img src="/icons/mira.png" alt="Mira" className="h-7 w-7 rounded-xl border object-cover" onError={(e)=>{ (e.target as HTMLImageElement).src = '/icons/mira.svg' }} />
+      <span className="font-bold tracking-tight">Mira</span>
     </div>
   )
 }

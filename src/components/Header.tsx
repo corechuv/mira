@@ -21,14 +21,14 @@ export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   useEffect(() => {
-    document.body.style.overflow = mobileOpen ? 'hidden' : ''
-    return () => { document.body.style.overflow = '' }
+    document.documentElement.classList.toggle('no-scroll', mobileOpen)
+    return () => { document.documentElement.classList.remove('no-scroll') }
   }, [mobileOpen])
 
   const submit = (e: React.FormEvent) => { e.preventDefault(); setMobileOpen(false); nav(`/catalog?q=${encodeURIComponent(q)}`) }
 
   return (
-    <header className="sticky top-0 z-40 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+    <header className="safe-top sticky top-0 z-40 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
       {/* Верхняя полоска */}
       <div className="border-b">
         <div className="container-narrow flex items-center gap-3 py-2">

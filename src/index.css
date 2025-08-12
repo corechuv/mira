@@ -28,3 +28,7 @@
 /* rating stars */
 .stars { @apply text-yellow-500; }
 .stars .dim { @apply text-slate-300; }
+
+/* ——— layout utils ——— */
+html.no-scroll, body.no-scroll { overflow: hidden; }
+.safe-top { padding-top: env(safe-area-inset-top); }

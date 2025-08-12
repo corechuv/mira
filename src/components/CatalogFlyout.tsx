@@ -28,7 +28,7 @@ export default function CatalogFlyout() {
   }
 
   return (
-    <div className="relative" ref={ref} onMouseLeave={()=>setOpen(false)}>
+    <div className="relative z-[70]" ref={ref} onMouseLeave={()=>setOpen(false)}>
       <button
         onClick={()=>setOpen(v=>!v)}
         onMouseEnter={()=>setOpen(true)}
@@ -42,7 +42,7 @@ export default function CatalogFlyout() {
       {open && (
         <div
           role="menu"
-          className="absolute left-0 top-[calc(100%+8px)] z-50 w-[680px] rounded-2xl border bg-white p-4 shadow-xl animate-in fade-in-0 zoom-in-95"
+          className="absolute z-[80] left-0 top-[calc(100%+8px)] z-50 w-[680px] rounded-2xl border bg-white p-4 shadow-xl animate-in fade-in-0 zoom-in-95"
           onMouseEnter={()=>setOpen(true)}
         >
           <div className="grid grid-cols-3 gap-3">
