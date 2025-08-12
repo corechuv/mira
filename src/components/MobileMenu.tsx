@@ -1,18 +1,17 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { Link, useNavigate } from 'react-router-dom'
-import { X, Sparkles, Brush, Scissors, Heart, Scale, ShoppingBag } from 'lucide-react'
 import { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useCart } from '@/store/cart'
 import { useFavorites } from '@/store/favorites'
 import { useCompare } from '@/store/compare'
 
 const CATS = [
-  { id: 'skincare', label: 'Уход за кожей', icon: Sparkles },
-  { id: 'makeup',  label: 'Макияж',        icon: Brush    },
-  { id: 'haircare',label: 'Волосы',        icon: Scissors },
+  { id: 'skincare', label: 'Уход за кожей' },
+  { id: 'makeup',   label: 'Макияж' },
+  { id: 'haircare', label: 'Волосы' },
 ]
 
-export default function MobileMenu({ open, onClose }: { open: boolean; onClose: ()=>void }) {
+export default function MobileMenu({ open, onClose, topOffset = 0 }: { open: boolean; onClose: ()=>void; topOffset?: number }) {
   const itemsCount = useCart(s => s.items).reduce((s,i)=>s+i.qty, 0)
   const favCount = useFavorites(s=>s.ids.length)
   const cmpCount = useCompare(s=>s.ids.length)
@@ -20,66 +19,50 @@ export default function MobileMenu({ open, onClose }: { open: boolean; onClose: 
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    if (open) {
-      document.documentElement.classList.add('no-scroll')
-      window.addEventListener('keydown', onKey)
-    } else {
-      document.documentElement.classList.remove('no-scroll')
-    }
-    return () => {
-      document.documentElement.classList.remove('no-scroll')
-      window.removeEventListener('keydown', onKey)
-    }
+    document.documentElement.classList.toggle('no-scroll', open)
+    if (open) window.addEventListener('keydown', onKey)
+    return () => { document.documentElement.classList.remove('no-scroll'); window.removeEventListener('keydown', onKey) }
   }, [open, onClose])
 
   const goto = (path: string) => { onClose(); nav(path) }
+
+  const styleBlock = { top: `var(--header-h, ${topOffset}px)`, height: `calc(100svh - var(--header-h, ${topOffset}px))` } as React.CSSProperties
 
   return (
     <AnimatePresence>
       {open && (
         <>
           <motion.div
-            className="fixed inset-0 z-[95] bg-black/40"
+            className="fixed inset-x-0 bottom-0 z-[95] bg-black/40"
+            style={styleBlock}
             onClick={onClose}
             initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
           />
           <motion.aside
-            className="fixed inset-y-0 left-0 z-[100] w-[86%] max-w-[360px] bg-white p-4 shadow-2xl
-                       max-h-[100svh] overflow-y-auto overscroll-contain"
+            className="fixed inset-y-0 left-0 z-[100] w-[86%] max-w-[360px] bg-white p-4 shadow-2xl overflow-y-auto overscroll-contain"
+            style={styleBlock}
             initial={{x:-20, opacity:0}} animate={{x:0, opacity:1}} exit={{x:-20, opacity:0}}
             transition={{ type:'spring', stiffness:300, damping:30 }}
           >
-            <div className="mb-4 flex items-center justify-between safe-top">
-              <div className="text-lg font-semibold">Навигация</div>
-              <button onClick={onClose} aria-label="Закрыть" className="rounded-lg border p-2"><X className="h-5 w-5" /></button>
-            </div>
-
-            <nav className="space-y-1">
-              <button onClick={()=>goto('/catalog')} className="w-full rounded-xl border p-3 text-left">Каталог</button>
-              <button onClick={()=>goto('/about')} className="w-full rounded-xl border p-3 text-left">О нас</button>
-              <button onClick={()=>goto('/contact')} className="w-full rounded-xl border p-3 text-left">Контакты</button>
+            <nav className="space-y-2">
+              <button onClick={()=>goto('/catalog')} className="w-full rounded-lg px-2 py-2 text-left text-[15px] hover:bg-slate-50">Каталог</button>
+              <button onClick={()=>goto('/about')} className="w-full rounded-lg px-2 py-2 text-left text-[15px] hover:bg-slate-50">О нас</button>
+              <button onClick={()=>goto('/contact')} className="w-full rounded-lg px-2 py-2 text-left text-[15px] hover:bg-slate-50">Контакты</button>
             </nav>
 
-            <div className="mt-4 text-xs uppercase text-slate-500">Категории</div>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              {CATS.map(({id,label,icon:Icon})=>(
-                <button key={id} onClick={()=>goto(`/catalog?category=${id}`)} className="flex items-center gap-2 rounded-xl border p-3">
-                  <Icon className="h-4 w-4 text-brand-700" />
-                  <span>{label}</span>
+            <div className="mt-4 text-xs uppercase tracking-wide text-slate-500">Категории</div>
+            <div className="mt-1 grid grid-cols-1">
+              {CATS.map(({id,label})=>(
+                <button key={id} onClick={()=>goto(`/catalog?category=${id}`)} className="rounded-lg px-2 py-2 text-left text-[15px] hover:bg-slate-50">
+                  {label}
                 </button>
               ))}
             </div>
 
-            <div className="mt-6 grid grid-cols-3 gap-2 text-center text-sm">
-              <button onClick={()=>goto('/favorites')} className="rounded-xl border p-3">
-                <Heart className="mx-auto h-5 w-5" /><div className="mt-1">{favCount}</div>
-              </button>
-              <button onClick={()=>goto('/compare')} className="rounded-xl border p-3">
-                <Scale className="mx-auto h-5 w-5" /><div className="mt-1">{cmpCount}</div>
-              </button>
-              <button onClick={()=>goto('/checkout')} className="rounded-xl border p-3">
-                <ShoppingBag className="mx-auto h-5 w-5" /><div className="mt-1">{itemsCount}</div>
-              </button>
+            <div className="mt-6 grid grid-cols-3 text-center text-sm">
+              <button onClick={()=>goto('/favorites')} className="rounded-lg px-2 py-2 hover:bg-slate-50">Избранное <div className="text-xs text-slate-500">{favCount}</div></button>
+              <button onClick={()=>goto('/compare')} className="rounded-lg px-2 py-2 hover:bg-slate-50">Сравнение <div className="text-xs text-slate-500">{cmpCount}</div></button>
+              <button onClick={()=>goto('/checkout')} className="rounded-lg px-2 py-2 hover:bg-slate-50">Корзина <div className="text-xs text-slate-500">{itemsCount}</div></button>
             </div>
           </motion.aside>
         </>
