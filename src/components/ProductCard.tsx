@@ -19,7 +19,7 @@ export default function ProductCard({ p }: { p: Product }) {
         <CardActions id={p.id} />
         {hasDiscount && <span className="absolute left-3 top-3 badge bg-rose-100 text-rose-700 z-10">SALE</span>}
         <Link to={`/product/${p.id}`} aria-label={p.title}>
-          <SmartImage src={p.images[0]} alt={p.title} className="rounded-b-none" />
+          <SmartImage src={p.images[0]} alt={p.title} className="rounded-2xl-b-none" />
         </Link>
         <CardBody>
           <div className="mb-2 flex items-center justify-between">

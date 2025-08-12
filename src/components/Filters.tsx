@@ -7,7 +7,7 @@ export default function Filters({ value, onChange, allBrands }: { value: Filters
   const brands = useMemo(() => ['Все бренды', ...allBrands], [allBrands])
   return (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-6">
-      <input className="input" placeholder="Поиск…"
+      <input className=" field " placeholder="Поиск…"
         value={value.q ?? ''} onChange={e => onChange({ ...value, q: e.target.value })} />
       <Select value={value.category ?? ''} onChange={e => onChange({ ...value, category: e.target.value })}>
         <option value="">Все категории</option>
@@ -24,8 +24,8 @@ export default function Filters({ value, onChange, allBrands }: { value: Filters
         <option value="price-desc">Сначала дороже</option>
         <option value="rating-desc">По рейтингу</option>
       </Select>
-      <input className="input" type="number" placeholder="Цена от" value={value.priceMin ?? ''} onChange={e => onChange({ ...value, priceMin: e.target.value })} />
-      <input className="input" type="number" placeholder="Цена до" value={value.priceMax ?? ''} onChange={e => onChange({ ...value, priceMax: e.target.value })} />
+      <input className=" field " type="number" placeholder="Цена от" value={value.priceMin ?? ''} onChange={e => onChange({ ...value, priceMin: e.target.value })} />
+      <input className=" field " type="number" placeholder="Цена до" value={value.priceMax ?? ''} onChange={e => onChange({ ...value, priceMax: e.target.value })} />
     </div>
   )
 }

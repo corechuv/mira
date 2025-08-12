@@ -2,18 +2,16 @@ import type { Config } from 'tailwindcss'
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
-    container: {
-      center: true,
-      padding: '1rem'
-    },
     extend: {
       colors: {
         brand: {
-          50:'#eef4ff',100:'#dbe7ff',200:'#b6cfff',300:'#8fb6ff',400:'#5e95ff',
-          500:'#3e7ff5',600:'#2f61db',700:'#274db0',800:'#1f3d88',900:'#1b346e'
-        }
+          50:'#fafafa',100:'#f4f4f5',200:'#e4e4e7',300:'#d4d4d8',400:'#a1a1aa',
+          500:'#71717a',600:'#3f3f46',700:'#27272a',800:'#18181b',900:'#0a0a0a'
+        },
+        primary: '#0a0a0a'
       },
-      borderRadius: { '2xl': '1.25rem' }
+      borderRadius: { '2xl': '1.25rem', 'pill':'9999px' },
+      boxShadow: { soft: '0 8px 24px -12px rgba(0,0,0,.25)' }
     }
   },
   plugins: [require('@tailwindcss/typography')]

@@ -238,7 +238,7 @@ function ReviewForm({ productId }: { productId: string }) {
             {[5,4,3,2,1].map(n=><option key={n} value={n}>{n}</option>)}
           </select>
         </label>
-        <textarea value={text} onChange={e=>setText(e.target.value)} placeholder="Ваш отзыв" className="input min-h-[100px]" />
+        <textarea value={text} onChange={e=>setText(e.target.value)} placeholder="Ваш отзыв" className=" field  min-h-[100px]" />
         <button className="btn btn-primary md:w-max" disabled={sending}>{sending?'Отправляем…':'Отправить'}</button>
       </form>
     </div>
