@@ -1,5 +1,8 @@
 import express from 'express'
 import cors from 'cors'
+import helmet from 'helmet'
+import compression from 'compression'
+import rateLimit from 'express-rate-limit'
 import Stripe from 'stripe'
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -14,7 +17,28 @@ const stripeSecret = process.env.STRIPE_SECRET_KEY || ''
 const stripe = stripeSecret ? new Stripe(stripeSecret, { apiVersion: '2024-06-20' } as any) : null
 
 const app = express()
-app.use(cors())
+app.set('trust proxy', 1)
+
+// Helmet (безопасные заголовки)
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
+}))
+
+// Gzip/deflate
+app.use(compression())
+
+// Строгий CORS: читаем из CORS_ORIGIN (через запятую) или FALLBACK_SITE
+{
+  const allowedEnv = (process.env.CORS_ORIGIN || FALLBACK_SITE).split(',').map(s=>s.trim())
+  app.use(cors({
+    origin: (origin, cb) => !origin || allowedEnv.includes(origin) ? cb(null,true) : cb(new Error('CORS blocked')),
+    credentials: true
+  }))
+}
+
+// Rate limit на API
+const limiter = rateLimit({ windowMs: 15*60*1000, max: 300 })
+app.use('/api/', limiter)
 
 const PORT = Number(process.env.PORT || 8787)
 const FALLBACK_SITE = process.env.VITE_SITE_URL || 'http://localhost:5173'
