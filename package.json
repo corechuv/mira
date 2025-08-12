@@ -19,7 +19,8 @@
     "typecheck": "tsc -b",
     "prepare": "husky install",
     "dev:nf": "netlify dev",
-    "deploy:nf": "netlify deploy --build --prod"
+    "deploy:nf": "netlify deploy --build --prod",
+    "build:ci": "npm run typecheck && vite build"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",

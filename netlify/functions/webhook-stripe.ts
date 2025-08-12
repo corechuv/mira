@@ -1,71 +1,52 @@
 import type { Handler } from '@netlify/functions'
 import Stripe from 'stripe'
-import { bodyBuffer, okJSON, errJSON } from './_helpers'
-import { sendOrderEmail } from '../../server/email'
-import { getSupabaseAdmin } from '../../server/supabaseAdmin'
+import { env, requireEnv } from './_shared/env'
+import { createClient } from '@supabase/supabase-js'
 
-const stripeKey = process.env.STRIPE_SECRET_KEY || ''
-const stripe = stripeKey ? new Stripe(stripeKey, { apiVersion: '2024-06-20' } as any) : null
+export const config = { path: "/api/webhook/stripe" } // Netlify routes
 
 export const handler: Handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return { statusCode: 204, body: '' }
   try {
-    if (!stripe) return errJSON('Stripe not configured', 500)
-    const sig = event.headers['stripe-signature'] as string
-    const whSecret = process.env.STRIPE_WEBHOOK_SECRET || ''
-    const buf = bodyBuffer(event)
-    const eventObj = stripe.webhooks.constructEvent(buf, sig, whSecret)
+    const sig = (event.headers['stripe-signature'] || event.headers['Stripe-Signature']) as string
+    if (!sig) return { statusCode: 400, body: 'Missing stripe-signature' }
 
-    if (eventObj.type === 'checkout.session.completed') {
-      const session = eventObj.data.object as Stripe.Checkout.Session
+    const stripe = new Stripe(requireEnv('STRIPE_SECRET_KEY'), { apiVersion: '2024-06-20' } as any)
+    const whSecret = requireEnv('STRIPE_WEBHOOK_SECRET')
+    const raw = Buffer.from(event.body || '')
+
+    let evt: Stripe.Event
+    try {
+      evt = stripe.webhooks.constructEvent(raw, sig, whSecret)
+    } catch (e:any) {
+      console.error('Webhook signature failed', e.message)
+      return { statusCode: 400, body: `Webhook Error: ${e.message}` }
+    }
+
+    if (evt.type === 'checkout.session.completed') {
+      const session = evt.data.object as Stripe.Checkout.Session
       const line = await stripe.checkout.sessions.listLineItems(session.id, { limit: 100 })
       const items = line.data.map(li => ({
         title: li.description || li.price?.nickname || 'Товар',
-        price: (li.amount_subtotal ?? li.amount_total ?? 0) / 100 / (li.quantity || 1),
+        price: ((li.amount_subtotal ?? li.amount_total ?? 0) / 100) / (li.quantity || 1),
         qty: li.quantity || 1,
       }))
+      const amount = (session.amount_total || 0) / 100
       const contact = JSON.parse((session.metadata?.contact || '{}') as string)
       const shipping = JSON.parse((session.metadata?.shipping || '{}') as string)
-      const amount = (session.amount_total || 0) / 100
 
-      const supabase = getSupabaseAdmin()
-      let id = `MIRA-${session.id.slice(-8).toUpperCase()}`
-      if (supabase) {
-        const { data, error } = await supabase.from('orders').insert({
-          user_id: session.metadata?.user_id || null,
-          items, amount,
-          currency: (session.currency || 'eur').toUpperCase(),
-          contact, shipping,
-          status: 'paid'
-        }).select('id').single()
-        if (!error && data?.id) id = data.id
-      }
-      const to = session.customer_details?.email
-      if (to) {
-        const html = renderEmailHtml(id, items, amount, shipping?.cost || 0, true)
-        await sendOrderEmail(to, `Оплата получена — заказ ${id}`, html)
-      }
+      // Supabase (service role)
+      const supa = createClient(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY'))
+      const id = `MIRA-${session.id.slice(-8).toUpperCase()}`
+      await supa.from('orders').insert({
+        user_id: session.metadata?.user_id || null,
+        items, amount, currency: (session.currency || 'eur').toUpperCase(),
+        contact, shipping, status: 'paid', ext_id: session.id
+      })
     }
 
-    return okJSON({ received: true })
-  } catch (e:any) {
-    console.error('Webhook error', e)
-    return errJSON(e.message || 'webhook error', 400)
+    return { statusCode: 200, body: 'ok' }
+  } catch (err:any) {
+    console.error(err)
+    return { statusCode: 500, body: err?.message || 'server error' }
   }
-}
-
-function renderEmailHtml(orderId: string, items: any[], amount: number, shipping: number, paid=false) {
-  const formatEUR = (n: number) => new Intl.NumberFormat('de-DE', { style:'currency', currency:'EUR'}).format(n);
-
-  const rows = (items||[]).map((i:any)=>`<tr><td style="padding:6px 12px;">${i.title}</td><td style="padding:6px 12px;" align="right">× ${i.qty}</td></tr>`).join('')
-  return `
-  <div style="font-family:Inter,Arial,sans-serif;max-width:560px;margin:auto;border:1px solid #eee;border-radius:12px;overflow:hidden">
-    <div style="background:#3e7ff5;color:#fff;padding:14px 18px;font-weight:700">Mira — подтверждение заказа</div>
-    <div style="padding:16px">
-      <p>Спасибо! Ваш заказ <b>${orderId}</b> ${paid ? 'оплачен' : 'создан'}.</p>
-      <table style="width:100%;border-collapse:collapse">${rows}</table>
-      <p style="margin-top:8px">Доставка: ${formatEUR(shipping)}</p>
-      <p style="font-weight:700">Итого: ${formatEUR(amount)}</p>
-    </div>
-  </div>`
 }

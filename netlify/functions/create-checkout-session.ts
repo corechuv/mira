@@ -1,34 +1,36 @@
 import type { Handler } from '@netlify/functions'
 import Stripe from 'stripe'
-import { handleOptions, okJSON, errJSON, getBaseUrl } from './_helpers'
-
-const stripeKey = process.env.STRIPE_SECRET_KEY || ''
-const stripe = stripeKey ? new Stripe(stripeKey, { apiVersion: '2024-06-20' } as any) : null
+import { env, requireEnv } from './_shared/env'
 
 export const handler: Handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return handleOptions()
   try {
-    if (!stripe) return errJSON('Stripe not configured (STRIPE_SECRET_KEY missing)', 500)
+    const stripe = new Stripe(requireEnv('STRIPE_SECRET_KEY'), { apiVersion: '2024-06-20' } as any)
+    const origin = (event.headers.origin as string) || env.SITE_URL || 'http://localhost:5173'
     const body = JSON.parse(event.body || '{}')
-    const { items, contact, shipping, user_id } = body
-    if (!Array.isArray(items) || !items.length) return errJSON('Empty items', 400)
 
-    const line_items = items.map((it:any)=>({
-      quantity: it.qty,
-      price_data: { currency: 'eur', product_data: { name: it.title }, unit_amount: Math.round(it.price * 100) }
-    }))
-    const base = getBaseUrl(event)
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
-      line_items,
-      success_url: `${base}/checkout?success=1`,
-      cancel_url: `${base}/checkout?canceled=1`,
-      allow_promotion_codes: true,
-      customer_email: contact?.email,
-      metadata: { user_id: user_id || '', contact: JSON.stringify(contact||{}), shipping: JSON.stringify(shipping||{}) }
+      payment_method_types: ['card'],
+      success_url: `${origin}/checkout?success=1`,
+      cancel_url: `${origin}/checkout?canceled=1`,
+      currency: 'eur',
+      line_items: (body.items || []).map((i: any) => ({
+        quantity: i.qty || 1,
+        price_data: {
+          currency: 'eur',
+          unit_amount: Math.round(Number(i.price) * 100),
+          product_data: { name: i.title || 'Product' }
+        }
+      })),
+      metadata: {
+        user_id: body.user_id || '',
+        contact: JSON.stringify(body.contact || {}),
+        shipping: JSON.stringify(body.shipping || {})
+      }
     })
-    return okJSON({ url: session.url })
-  } catch (e:any) {
-    console.error(e); return errJSON(e.message || 'stripe error', 500)
+    return { statusCode: 200, body: JSON.stringify({ id: session.id, url: session.url }) }
+  } catch (err:any) {
+    console.error(err)
+    return { statusCode: 500, body: JSON.stringify({ error: err.message || 'Stripe error' }) }
   }
 }

@@ -1,25 +1,51 @@
 [build]
-  command = "npm run build"
-  publish = "dist"
+  command  = "npm run build"
+  publish  = "dist"
   functions = "netlify/functions"
 
-[dev]
-  framework = "vite"
-  targetPort = 5173
-  port = 8888
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["nodemailer"]
+  included_files = ["server/**"]
+  node_version = "18"
 
-# API → функции (общее правило)
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
-
-# SPA fallback — в самом конце и БЕЗ force
+# SPA fallback
 [[redirects]]
   from = "/*"
-  to = "/index.html"
+  to   = "/index.html"
   status = 200
 
-[build.environment]
-  # эти ключи публичные (и MAIL_FROM шаблонный) — не считаем секретами
-  SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY,MAIL_FROM"
+# Статика на год (иммутабельно)
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+  Cache-Control = "public, max-age=31536000, immutable"
+
+# SW не кешируем агрессивно
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+  Cache-Control = "no-cache"
+
+# Базовые защищающие заголовки + CSP под Stripe/Supabase
+[[headers]]
+  for = "/*"
+  [headers.values]
+  X-Frame-Options = "DENY"
+  X-Content-Type-Options = "nosniff"
+  Referrer-Policy = "strict-origin-when-cross-origin"
+  Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+  # NB: если добавишь внешние домены (чат/аналитика) — дополни connect-src/script-src/frame-src
+  Content-Security-Policy = """
+  default-src 'self';
+  base-uri 'self';
+  object-src 'none';
+  script-src 'self' https://js.stripe.com https://checkout.stripe.com;
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data: blob: https:;
+  font-src 'self' data:;
+  connect-src 'self' https://*.supabase.co https://api.stripe.com https://checkout.stripe.com;
+  frame-src https://js.stripe.com https://checkout.stripe.com;
+  worker-src 'self';
+  form-action 'self' https://checkout.stripe.com;
+  """
