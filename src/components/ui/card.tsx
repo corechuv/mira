@@ -13,3 +13,5 @@ export function CardContent({ className, ...props }: HTMLAttributes<HTMLDivEleme
 export function CardFooter({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return <div className={cn('px-4 pb-4', className)} {...props} />
 }
+
+export const CardBody = CardContent
