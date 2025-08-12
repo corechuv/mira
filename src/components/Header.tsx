@@ -29,7 +29,7 @@ export default function Header() {
     return () => ro.disconnect()
   }, [])
 
-  const submit = (e: React.FormEvent) => { e.preventDefault(); setMobileOpen(false); nav(\`/catalog?q=\${encodeURIComponent(q)}\`) }
+  const submit = (e: React.FormEvent) => { e.preventDefault(); setMobileOpen(false); nav('/catalog?q=' + encodeURIComponent(q)) }`) }
 
   const Actions = useMemo(() => (
     <div className="ml-2 hidden items-center gap-5 md:flex text-slate-800">
