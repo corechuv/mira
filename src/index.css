@@ -44,5 +44,5 @@ html.no-scroll, body.no-scroll { overflow: hidden; }
 
 /* ——— reviews/textarea shape fix ——— */
 @layer components {
-  textarea.field{ @apply rounded-2xl min-h-[120px] resize-vertical; }
+  textarea.field{ @apply rounded-2xl min-h-[120px] resize-y; }
 }
