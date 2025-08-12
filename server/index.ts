@@ -29,7 +29,7 @@ app.use(compression())
 
 // Строгий CORS: читаем из CORS_ORIGIN (через запятую) или FALLBACK_SITE
 {
-  const allowedEnv = (process.env.CORS_ORIGIN || FALLBACK_SITE).split(',').map(s=>s.trim())
+  const allowedEnv = (process.env.CORS_ORIGIN || process.env.VITE_SITE_URL || 'http://localhost:5173').split(',').map(s=>s.trim())
   app.use(cors({
     origin: (origin, cb) => !origin || allowedEnv.includes(origin) ? cb(null,true) : cb(new Error('CORS blocked')),
     credentials: true
