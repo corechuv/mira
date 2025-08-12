@@ -3,46 +3,23 @@
   publish = "dist"
   functions = "netlify/functions"
 
-# Локальный dev: Netlify сам поднимет Vite и прокинет функции
 [dev]
   framework = "vite"
   targetPort = 5173
   port = 8888
 
-# SPA fallback
+# API → функции (общее правило)
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+# SPA fallback — в самом конце и БЕЗ force
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-  force = true
-  conditions = {Language = ["ru"]}
-
-# API → функции
-[[redirects]]
-  from = "/api/health"
-  to = "/.netlify/functions/health"
-  status = 200
-
-[[redirects]]
-  from = "/api/create-checkout-session"
-  to = "/.netlify/functions/create-checkout-session"
-  status = 200
-
-[[redirects]]
-  from = "/api/place-order"
-  to = "/.netlify/functions/place-order"
-  status = 200
-
-[[redirects]]
-  from = "/api/og"
-  to = "/.netlify/functions/og"
-  status = 200
-
-# Stripe webhook (должен быть POST без кэша)
-[[redirects]]
-  from = "/api/webhook/stripe"
-  to = "/.netlify/functions/webhook-stripe"
-  status = 200
 
 [build.environment]
+  # эти ключи публичные (и MAIL_FROM шаблонный) — не считаем секретами
   SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY,MAIL_FROM"
