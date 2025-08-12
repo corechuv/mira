@@ -36,6 +36,17 @@ function Layout() {
 
 export const router = createBrowserRouter([
   {
+    path: '/admin',
+    element: <AdminGuard><AdminLayout /></AdminGuard>,
+    children: [
+      { index: true, element: <Dashboard /> },
+      { path: 'categories', element: <CategoriesAdmin /> },
+      { path: 'products', element: <ProductsAdmin /> },
+      { path: 'reviews', element: <ReviewsAdmin /> },
+      { path: 'orders', element: <OrdersAdmin /> }
+    ]
+  },
+  {
     element: <Layout />,
     errorElement: <ErrorBoundary />,
     children: [
