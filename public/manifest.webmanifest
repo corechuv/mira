@@ -1,0 +1,11 @@
+{
+  "name": "Mira — интернет-магазин косметики",
+  "short_name": "Mira",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3e7ff5",
+  "icons": [
+    { "src": "/icons/mira.svg", "sizes": "any", "type": "image/svg+xml", "purpose":"any maskable" }
+  ]
+}
