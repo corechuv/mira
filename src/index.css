@@ -41,3 +41,8 @@ html.no-scroll, body.no-scroll { overflow: hidden; }
   .card{ @apply rounded-2xl border border-black/10 bg-white shadow-soft; }
   .container-narrow{ @apply mx-auto w-full max-w-6xl px-4; }
 }
+
+/* ——— reviews/textarea shape fix ——— */
+@layer components {
+  textarea.field{ @apply rounded-2xl min-h-[120px] resize-vertical; }
+}
