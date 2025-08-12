@@ -50,8 +50,7 @@ export default function Checkout() {
   const shipping = watch('shipping') || 'standard'
   const payment = watch('payment') || 'cod'
   const couponCode = (watch('coupon') || '').trim().toUpperCase()
-  const shippingCost = shipping === 'express' ? 5.99 : 2.99 cart.clear(); toast.success('Заказ оформлен!')
-    } catch (e:any) {
+  const shippingCost = shipping === 'express' ? 5.99 : 2.99
       const id = `MIRA-${Math.random().toString(36).slice(2,8).toUpperCase()}`
       setPlacedId(id); cart.clear(); toast.warning('Заказ сохранён локально (без письма)')
     }
