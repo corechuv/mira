@@ -6,7 +6,7 @@ create table if not exists public.orders (
   user_id uuid null,
   items jsonb not null,
   amount integer not null,
-  currency text not null default 'RUB',
+  currency text not null default 'EUR',
   contact jsonb not null,
   shipping jsonb not null,
   status text not null default 'new',

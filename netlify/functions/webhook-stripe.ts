@@ -34,7 +34,7 @@ export const handler: Handler = async (event) => {
         const { data, error } = await supabase.from('orders').insert({
           user_id: session.metadata?.user_id || null,
           items, amount,
-          currency: (session.currency || 'rub').toUpperCase(),
+          currency: (session.currency || 'eur').toUpperCase(),
           contact, shipping,
           status: 'paid'
         }).select('id').single()

@@ -1,11 +1,18 @@
 {
-  "name": "Mira — интернет-магазин косметики",
+  "name": "Mira — Kosmetikshop",
   "short_name": "Mira",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#3e7ff5",
   "icons": [
-    { "src": "/icons/mira.svg", "sizes": "any", "type": "image/svg+xml", "purpose":"any maskable" }
-  ]
+    {
+      "src": "/icons/mira.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "lang": "de",
+  "description": "Kosmetik Onlineshop"
 }

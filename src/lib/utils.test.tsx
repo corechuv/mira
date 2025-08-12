@@ -3,7 +3,7 @@ import { render } from '@testing-library/react'
 import React from 'react'
 
 describe('formatPrice', () => {
-  it('formats RUB without pennies', () => {
+  it('formats EUR without pennies', () => {
     expect(formatPrice(1590)).toMatch(/1\s?590\s?€/)
   })
 })
