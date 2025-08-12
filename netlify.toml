@@ -1,0 +1,45 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+# Локальный dev: Netlify сам поднимет Vite и прокинет функции
+[dev]
+  framework = "vite"
+  targetPort = 5173
+  port = 8888
+
+# SPA fallback
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  force = true
+  conditions = {Language = ["ru"]}
+
+# API → функции
+[[redirects]]
+  from = "/api/health"
+  to = "/.netlify/functions/health"
+  status = 200
+
+[[redirects]]
+  from = "/api/create-checkout-session"
+  to = "/.netlify/functions/create-checkout-session"
+  status = 200
+
+[[redirects]]
+  from = "/api/place-order"
+  to = "/.netlify/functions/place-order"
+  status = 200
+
+[[redirects]]
+  from = "/api/og"
+  to = "/.netlify/functions/og"
+  status = 200
+
+# Stripe webhook (должен быть POST без кэша)
+[[redirects]]
+  from = "/api/webhook/stripe"
+  to = "/.netlify/functions/webhook-stripe"
+  status = 200
