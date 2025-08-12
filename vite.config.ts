@@ -7,6 +7,7 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+  disable: process.env.DISABLE_PWA === '1',
 
   registerType: 'autoUpdate',
   includeAssets: ['icons/mira.svg','icons/mira.png'],
