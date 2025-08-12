@@ -12,7 +12,7 @@ export const handler: Handler = async (event) => {
     let id = `MIRA-${Math.random().toString(36).slice(2,8).toUpperCase()}`
     if (supabase) {
       const { data, error } = await supabase.from('orders').insert({
-        user_id: user_id || null, items, amount, currency: 'RUB', contact, shipping, status: 'new'
+        user_id: user_id || null, items, amount, currency: 'EUR', contact, shipping, status: 'new'
       }).select('id').single()
       if (!error && data?.id) id = data.id
     }
@@ -27,14 +27,16 @@ export const handler: Handler = async (event) => {
 }
 
 function renderEmailHtml(orderId: string, items: any[], amount: number, shipping: number) {
+  const formatEUR = (n: number) => new Intl.NumberFormat('de-DE', { style:'currency', currency:'EUR'}).format(n);
+
   const rows = (items||[]).map((i:any)=>`<tr><td style="padding:6px 12px;">${i.title}</td><td style="padding:6px 12px;" align="right">× ${i.qty}</td></tr>`).join('')
   return `
   <div style="font-family:Inter,Arial,sans-serif;max-width:560px;margin:auto;border:1px solid #eee;border-radius:12px;overflow:hidden">
     <div style="background:#3e7ff5;color:#fff;padding:14px 18px;font-weight:700">Mira — подтверждение заказа</div>
     <div style="padding:16px">
       <table style="width:100%;border-collapse:collapse">${rows}</table>
-      <p style="margin-top:8px">Доставка: ${shipping} ₽</p>
-      <p style="font-weight:700">Итого: ${amount} ₽</p>
+      <p style="margin-top:8px">Доставка: ${formatEUR(shipping)}</p>
+      <p style="font-weight:700">Итого: ${formatEUR(amount)}</p>
     </div>
   </div>`
 }

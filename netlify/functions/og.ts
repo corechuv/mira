@@ -16,7 +16,7 @@ export const handler: Handler = async (event) => {
   <rect x="40" y="40" width="1120" height="550" rx="32" fill="url(#g)"/>
   <text x="80" y="140" fill="${accent}" font-family="Inter,ui-sans-serif" font-size="42" font-weight="700">${esc(brand)}</text>
   <text x="80" y="230" fill="${fg}" font-family="Inter,ui-sans-serif" font-size="60" font-weight="800">${esc(title)}</text>
-  ${price ? `<text x="80" y="300" fill="${fg}" font-family="Inter,ui-sans-serif" font-size="36" font-weight="600">${esc(price)} ₽</text>`: ''}
+  ${price ? `<text x="80" y="300" fill="${fg}" font-family="Inter,ui-sans-serif" font-size="36" font-weight="600">${esc(price)} €</text>`: ''}
   <text x="80" y="520" fill="${fg}" opacity="0.7" font-family="Inter,ui-sans-serif" font-size="28">mira.shop</text>
 </svg>`
   return { statusCode: 200, headers: { 'Content-Type': 'image/svg+xml; charset=utf-8', 'Cache-Control': 'public, max-age=3600' }, body: svg }

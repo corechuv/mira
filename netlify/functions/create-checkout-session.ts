@@ -15,7 +15,7 @@ export const handler: Handler = async (event) => {
 
     const line_items = items.map((it:any)=>({
       quantity: it.qty,
-      price_data: { currency: 'rub', product_data: { name: it.title }, unit_amount: Math.round(it.price * 100) }
+      price_data: { currency: 'eur', product_data: { name: it.title }, unit_amount: Math.round(it.price * 100) }
     }))
     const base = getBaseUrl(event)
     const session = await stripe.checkout.sessions.create({

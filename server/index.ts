@@ -72,7 +72,7 @@ app.post('/api/webhook/stripe', express.raw({ type: 'application/json' }), async
         const { data, error } = await supabase.from('orders').insert({
           user_id: session.metadata?.user_id || null,
           items, amount,
-          currency: (session.currency || 'rub').toUpperCase(),
+          currency: (session.currency || 'eur').toUpperCase(),
           contact, shipping,
           status: 'paid'
         }).select('id').single()
@@ -103,7 +103,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
     if (!Array.isArray(items) || !items.length) return res.status(400).json({ error: 'Empty items' })
     const line_items = items.map((it: any) => ({
       quantity: it.qty,
-      price_data: { currency: 'rub', product_data: { name: it.title }, unit_amount: Math.round(it.price * 100) }
+      price_data: { currency: 'eur', product_data: { name: it.title }, unit_amount: Math.round(it.price * 100) }
     }))
     const base = getBaseUrl(req)
     const session = await stripe.checkout.sessions.create({
@@ -131,7 +131,7 @@ app.post('/api/place-order', async (req, res) => {
     if (supabase) {
       const { data, error } = await supabase.from('orders').insert({
         user_id: user_id || null,
-        items, amount, currency: 'RUB', contact, shipping, status: 'new'
+        items, amount, currency: 'EUR', contact, shipping, status: 'new'
       }).select('id').single()
       if (!error && data?.id) id = data.id
     }
@@ -167,7 +167,7 @@ app.get('/api/og', (req, res) => {
   <rect x="40" y="40" width="1120" height="550" rx="32" fill="url(#g)"/>
   <text x="80" y="140" fill="${accent}" font-family="Inter,ui-sans-serif" font-size="42" font-weight="700">${escapeXml(brand)}</text>
   <text x="80" y="230" fill="${fg}" font-family="Inter,ui-sans-serif" font-size="60" font-weight="800">${escapeXml(title)}</text>
-  ${price ? `<text x="80" y="300" fill="${fg}" font-family="Inter,ui-sans-serif" font-size="36" font-weight="600">${escapeXml(price)} ₽</text>`: ''}
+  ${price ? `<text x="80" y="300" fill="${fg}" font-family="Inter,ui-sans-serif" font-size="36" font-weight="600">${escapeXml(price)} €</text>`: ''}
   <text x="80" y="520" fill="${fg}" opacity="0.7" font-family="Inter,ui-sans-serif" font-size="28">mira.shop</text>
 </svg>`
   res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8')
@@ -185,6 +185,8 @@ app.get(/^\/(?!api\/).*/, (_req, res) => res.sendFile(path.join(distPath, 'index
 app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`))
 
 function renderEmailHtml(orderId: string, items: any[], amount: number, shipping: number, paid = false) {
+  const formatEUR = (n: number) => new Intl.NumberFormat('de-DE', { style:'currency', currency:'EUR'}).format(n);
+
   const rows = items.map(i => `<tr><td style="padding:6px 12px;">${escapeXml(i.title)}</td><td style="padding:6px 12px;" align="right">× ${i.qty}</td></tr>`).join('')
   return `
   <div style="font-family:Inter,Arial,sans-serif;max-width:560px;margin:auto;border:1px solid #eee;border-radius:12px;overflow:hidden">
@@ -192,8 +194,8 @@ function renderEmailHtml(orderId: string, items: any[], amount: number, shipping
     <div style="padding:16px">
       <p>Спасибо! Ваш заказ <b>${orderId}</b> ${paid ? 'оплачен' : 'создан'}.</p>
       <table style="width:100%;border-collapse:collapse">${rows}</table>
-      <p style="margin-top:8px">Доставка: ${shipping} ₽</p>
-      <p style="font-weight:700">Итого: ${amount} ₽</p>
+      <p style="margin-top:8px">Доставка: ${formatEUR(shipping)}</p>
+      <p style="font-weight:700">Итого: ${formatEUR(amount)}</p>
       <p style="color:#6b7280">Мы свяжемся с вами по вопросам доставки.</p>
     </div>
   </div>`

@@ -50,38 +50,7 @@ export default function Checkout() {
   const shipping = watch('shipping') || 'standard'
   const payment = watch('payment') || 'cod'
   const couponCode = (watch('coupon') || '').trim().toUpperCase()
-  const shippingCost = shipping === 'express' ? 599 : 299
-  const discount = Math.floor((COUPONS[couponCode] || 0) * totalItems)
-  const toPay = Math.max(0, totalItems - discount) + (totalItems > 0 ? shippingCost : 0)
-
-  const onSubmit = async (v: Form) => {
-    if (cart.items.length === 0) return toast.error('Корзина пуста')
-
-    const payload = {
-      items: cart.items.map(it => ({ id: it.product.id, title: it.product.title, price: it.product.price, qty: it.qty })),
-      amount: toPay,
-      contact: { name: v.name, phone: v.phone, email: v.email ?? '', address: v.address },
-      shipping: { mode: v.shipping, cost: shippingCost },
-      user_id: user?.id ?? null
-    }
-
-    if (payment === 'card') {
-      try {
-        const r = await fetch('/api/create-checkout-session', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) })
-        const data = await r.json()
-        if (!r.ok) throw new Error(data.error || 'Stripe error')
-        window.location.href = data.url
-      } catch (e:any) {
-        return toast.error(e.message || 'Не удалось создать платёж')
-      }
-      return
-    }
-
-    try {
-      const r = await fetch('/api/place-order', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) })
-      const data = await r.json()
-      if (!r.ok) throw new Error(data.error || 'Order error')
-      setPlacedId(data.id); cart.clear(); toast.success('Заказ оформлен!')
+  const shippingCost = shipping === 'express' ? 5.99 : 2.99 cart.clear(); toast.success('Заказ оформлен!')
     } catch (e:any) {
       const id = `MIRA-${Math.random().toString(36).slice(2,8).toUpperCase()}`
       setPlacedId(id); cart.clear(); toast.warning('Заказ сохранён локально (без письма)')
@@ -115,8 +84,8 @@ export default function Checkout() {
         <div className="grid gap-3 md:grid-cols-2">
           <div className="card p-3">
             <div className="font-medium mb-2">Доставка</div>
-            <label className="flex items-center gap-2"><input type="radio" value="standard" {...register('shipping')} />Стандартная (299 ₽)</label>
-            <label className="mt-1 flex items-center gap-2"><input type="radio" value="express" {...register('shipping')} />Экспресс (599 ₽)</label>
+            <label className="flex items-center gap-2"><input type="radio" value="standard" {...register('shipping')} />Стандартная (299 €)</label>
+            <label className="mt-1 flex items-center gap-2"><input type="radio" value="express" {...register('shipping')} />Экспресс (599 €)</label>
           </div>
           <div className="card p-3">
             <div className="font-medium mb-2">Оплата</div>

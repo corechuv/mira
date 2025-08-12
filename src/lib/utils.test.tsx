@@ -4,7 +4,7 @@ import React from 'react'
 
 describe('formatPrice', () => {
   it('formats RUB without pennies', () => {
-    expect(formatPrice(1590)).toMatch(/1\s?590\s?₽/)
+    expect(formatPrice(1590)).toMatch(/1\s?590\s?€/)
   })
 })
 

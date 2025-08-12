@@ -113,7 +113,7 @@ export default function ProductPage() {
           <div className="mt-6 rounded-xl border p-3 text-sm text-slate-700">
             <div className="font-medium mb-1">Доставка и оплата</div>
             <ul className="list-disc pl-5 space-y-1">
-              <li>Курьер по РФ: 299–599 ₽</li>
+              <li>Доставка по Германии: 2,99–5,99 €</li>
               <li>Онлайн-оплата (Stripe) или при получении</li>
               <li>Возврат в течение 14 дней</li>
             </ul>

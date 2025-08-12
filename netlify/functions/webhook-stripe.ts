@@ -55,6 +55,8 @@ export const handler: Handler = async (event) => {
 }
 
 function renderEmailHtml(orderId: string, items: any[], amount: number, shipping: number, paid=false) {
+  const formatEUR = (n: number) => new Intl.NumberFormat('de-DE', { style:'currency', currency:'EUR'}).format(n);
+
   const rows = (items||[]).map((i:any)=>`<tr><td style="padding:6px 12px;">${i.title}</td><td style="padding:6px 12px;" align="right">× ${i.qty}</td></tr>`).join('')
   return `
   <div style="font-family:Inter,Arial,sans-serif;max-width:560px;margin:auto;border:1px solid #eee;border-radius:12px;overflow:hidden">
@@ -62,8 +64,8 @@ function renderEmailHtml(orderId: string, items: any[], amount: number, shipping
     <div style="padding:16px">
       <p>Спасибо! Ваш заказ <b>${orderId}</b> ${paid ? 'оплачен' : 'создан'}.</p>
       <table style="width:100%;border-collapse:collapse">${rows}</table>
-      <p style="margin-top:8px">Доставка: ${shipping} ₽</p>
-      <p style="font-weight:700">Итого: ${amount} ₽</p>
+      <p style="margin-top:8px">Доставка: ${formatEUR(shipping)}</p>
+      <p style="font-weight:700">Итого: ${formatEUR(amount)}</p>
     </div>
   </div>`
 }

@@ -1,7 +1,8 @@
-export function cn(...cls: Array<string | undefined | false>) {
-  return cls.filter(Boolean).join(' ')
+export function cn(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(' ')
 }
-
-export function formatPrice(v: number) {
-  return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(v)
+const LOCALE = import.meta.env.VITE_LOCALE ?? 'de-DE'
+const CURRENCY = import.meta.env.VITE_CURRENCY ?? 'EUR'
+export function formatPrice(value: number) {
+  return new Intl.NumberFormat(LOCALE, { style: 'currency', currency: CURRENCY, minimumFractionDigits: 2 }).format(value)
 }
