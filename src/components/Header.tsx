@@ -1,105 +1,65 @@
-import { ShoppingBag, User, Menu, Search, LogIn, LogOut, Heart, Scale } from 'lucide-react'
-import Logo from './Logo'
-import { Input } from './ui/input'
-import { useCart } from '@/store/cart'
 import { Link, useNavigate } from 'react-router-dom'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { useAuth } from '@/store/auth'
-import { useFavorites } from '@/store/favorites'
-import { useCompare } from '@/store/compare'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCart } from '@/store/cart'
+import Logo from './Logo'
 import CatalogMega from './CatalogMega'
-import MobileMenu from './MobileMenu'
 
 export default function Header() {
-  const itemsCount = useCart(s => s.items).reduce((s, i) => s + i.qty, 0)
   const nav = useNavigate()
-  const { user, signOut } = useAuth()
-  const favCount = useFavorites(s=>s.ids.length)
-  const cmpCount = useCompare(s=>s.ids.length)
+  const cart = useCart()
   const [q, setQ] = useState('')
   const [mobileOpen, setMobileOpen] = useState(false)
-  const headerRef = useRef<HTMLElement>(null)
+  const [megaOpen, setMegaOpen] = useState(false)
+  const headerRef = useRef<HTMLDivElement | null>(null)
 
-  useEffect(() => {
-    const update = () => {
-      const h = headerRef.current?.getBoundingClientRect().height || 64
+  useLayoutEffect(() => {
+    const apply = () => {
+      const h = headerRef.current?.offsetHeight || 64
       document.documentElement.style.setProperty('--header-h', `${h}px`)
     }
-    update()
-    const ro = new ResizeObserver(update)
+    apply()
+    const ro = new ResizeObserver(apply)
     if (headerRef.current) ro.observe(headerRef.current)
-    return () => ro.disconnect()
+    window.addEventListener('resize', apply)
+    return () => { window.removeEventListener('resize', apply); ro.disconnect() }
   }, [])
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
     setMobileOpen(false)
-    nav('/catalog?q=' + encodeURIComponent(q))
+    nav(`/catalog?q=${encodeURIComponent(q)}`)
   }
 
-  const Actions = useMemo(() => (
-    <div className="ml-2 hidden items-center gap-5 md:flex text-slate-800">
-      <Link to="/favorites" className="inline-flex items-center gap-1 hover:opacity-80">
-        <Heart className="h-5 w-5" />{favCount>0 && <span className="text-xs text-slate-500">{favCount}</span>}
-      </Link>
-      <Link to="/compare" className="inline-flex items-center gap-1 hover:opacity-80">
-        <Scale className="h-5 w-5" />{cmpCount>0 && <span className="text-xs text-slate-500">{cmpCount}</span>}
-      </Link>
-      {user ? (
-        <>
-          <Link to="/profile" className="inline-flex items-center hover:opacity-80" aria-label="Профиль">
-            <User className="h-5 w-5" />
-          </Link>
-          <button onClick={() => signOut()} className="inline-flex items-center hover:opacity-80" aria-label="Выйти">
-            <LogOut className="h-5 w-5" />
-          </button>
-        </>
-      ) : (
-        <Link to="/sign-in" className="inline-flex items-center hover:opacity-80" aria-label="Войти">
-          <LogIn className="h-5 w-5" />
-        </Link>
-      )}
-      <Link to="/checkout" className="inline-flex items-center hover:opacity-80" aria-label="Корзина">
-        <ShoppingBag className="h-5 w-5" />{itemsCount>0 && <span className="ml-1 text-xs text-slate-500">{itemsCount}</span>}
-      </Link>
-    </div>
-  ), [favCount, cmpCount, itemsCount, user, signOut])
-
   return (
-    <header ref={headerRef} className="safe-top sticky top-0 z-50 bg-white/85 backdrop-blur">
-      <div className="container-narrow flex items-center gap-4 py-2">
-        <button
-          className="md:hidden rounded-pill p-2 text-slate-700 hover:bg-black/5"
-          aria-label="Меню"
-          onClick={() => setMobileOpen(true)}
-        >
-          <Menu className="h-5 w-5" />
-        </button>
+    <header ref={headerRef} className="sticky top-0 z-40 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+      <div className="container flex h-16 items-center justify-between gap-3">
+        <Link to="/" className="shrink-0"><Logo /></Link>
 
-        <Link to="/" className="flex items-center gap-2 shrink-0">
-          <Logo />
-        </Link>
+        <div className="hidden md:block">
+          <button className="btn-outline"
+            onMouseEnter={() => setMegaOpen(true)}
+            onFocus={() => setMegaOpen(true)}
+            onClick={() => setMegaOpen(v => !v)}>
+            Каталог
+          </button>
+        </div>
 
-        <nav className="ml-4 hidden items-center gap-6 text-sm md:flex">
-          <CatalogMega />
-        </nav>
-
-        <form onSubmit={submit} className="ml-auto flex w-full max-w-xl items-center gap-2">
-          <div className="relative w-full">
-            <Input
-              value={q}
-              onChange={e => setQ(e.target.value)}
-              placeholder="Поиск"
-              className="pl-9"
-            />
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-60" />
-          </div>
+        <form onSubmit={submit} className="hidden flex-1 items-center md:flex">
+          <input className="input w-full" placeholder="Поиск по каталогу…"
+                 value={q} onChange={e=>setQ(e.target.value)} />
         </form>
 
-        {Actions}
+        <div className="flex items-center gap-2">
+          <Link to="/favorites" className="btn-ghost">Избранное</Link>
+          <Link to="/compare" className="btn-ghost">Сравнить</Link>
+          <Link to="/cart" className="btn-primary">Корзина ({cart.count})</Link>
+          <button className="md:hidden btn-ghost" onClick={()=>setMobileOpen(true)} aria-label="Меню">Меню</button>
+        </div>
       </div>
 
-      <MobileMenu open={mobileOpen} onClose={() => setMobileOpen(false)} topOffset={0} />
+      <div className="hidden md:block">
+        <CatalogMega open={megaOpen} setOpen={setMegaOpen} />
+      </div>
     </header>
   )
 }

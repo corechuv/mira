@@ -5,13 +5,16 @@ export default {
     extend: {
       colors: {
         brand: {
-          50:'#fafafa',100:'#f4f4f5',200:'#e4e4e7',300:'#d4d4d8',400:'#a1a1aa',
-          500:'#71717a',600:'#3f3f46',700:'#27272a',800:'#18181b',900:'#0a0a0a'
-        },
-        primary: '#0a0a0a'
+          50:'#f6f7ff',100:'#e8ebff',200:'#cfd6ff',300:'#a8b6ff',
+          400:'#7e94ff',500:'#4d69ff',600:'#2f4ee6',700:'#243dbc',
+          800:'#1e3498',900:'#1a2b7b'
+        }
       },
-      borderRadius: { '2xl': '1.25rem', 'pill':'9999px' },
-      boxShadow: { soft: '0 8px 24px -12px rgba(0,0,0,.25)' }
+      borderRadius: { '2xl': '1.25rem', '3xl': '1.75rem' },
+      boxShadow: {
+        card: '0 8px 24px rgba(0,0,0,.06)',
+        soft: '0 2px 10px rgba(0,0,0,.05)'
+      }
     }
   },
   plugins: [require('@tailwindcss/typography')]

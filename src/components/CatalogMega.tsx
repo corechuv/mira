@@ -1,58 +1,82 @@
-import { useEffect, useState } from 'react'
-import { fetchCategories, CatNode } from '@/lib/categories'
-import { Link } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { fetchCategoriesTree, type CategoryTreeNode } from '@/lib/categories'
 
-const A = (p: any) => <a {...p} className={'inline-block px-2 py-1 rounded-lg hover:bg-black/5 ' + (p.className || '')} />
+export default function CatalogMega({ open, setOpen }: { open: boolean; setOpen: (v: boolean)=>void }) {
+  const [tree, setTree] = useState<CategoryTreeNode[]>([])
+  const [loading, setLoading] = useState(true)
+  const [rootId, setRootId] = useState<string | null>(null)
+  const [childId, setChildId] = useState<string | null>(null)
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const nav = useNavigate()
 
-export default function CatalogMega() {
-  const [tree, setTree] = useState<CatNode[]>([])
-  const [open, setOpen] = useState(false)
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      setLoading(true)
+      try {
+        const t = await fetchCategoriesTree()
+        if (!alive) return
+        setTree(t); setRootId(t[0]?.id || null)
+      } finally { if (alive) setLoading(false) }
+    })()
+    return () => { alive = false }
+  }, [])
 
-  useEffect(() => { (async () => setTree(await fetchCategories()))() }, [])
+  const activeRoot = useMemo(() => tree.find(x => x.id === rootId) || null, [tree, rootId])
+  const activeChild = useMemo(() => activeRoot?.children.find(x => x.id === childId) || null, [activeRoot, childId])
 
-  const level1 = Array.isArray(tree) ? tree : []
+  const openNow = () => { if (closeTimer.current) clearTimeout(closeTimer.current); setOpen(true) }
+  const scheduleClose = () => { if (closeTimer.current) clearTimeout(closeTimer.current); closeTimer.current = setTimeout(()=>setOpen(false), 140) }
+  const goCat = (slug: string) => { setOpen(false); nav(`/catalog?cat=${encodeURIComponent(slug)}`) }
 
+  if (!open) return null
   return (
-    <div
-      className="relative"
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-    >
-      <button type="button" className="btn-ghost">Каталог</button>
-
-      {open && (
-        <div className="absolute left-1/2 z-40 mt-2 w-[min(1100px,90vw)] -translate-x-1/2 rounded-2xl border border-black/10 bg-white p-4 shadow-soft">
-          <div className="grid gap-4 md:grid-cols-3">
-            {/* L1 */}
-            <div className="space-y-1">
-              {level1.map(l1 => (
-                <div key={l1.id}>
-                  <Link to={`/catalog?cat=${l1.slug}`} className="font-semibold hover:underline">{l1.name}</Link>
-                </div>
-              ))}
+    <div onMouseEnter={openNow} onMouseLeave={scheduleClose}
+         className="fixed left-0 right-0 z-40 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/75 shadow-lg"
+         style={{ top: `var(--header-h, 64px)` }}>
+      <div className="container py-6">
+        {loading ? (
+          <div className="grid grid-cols-3 gap-6">{Array.from({length:3}).map((_,i)=><div key={i} className="h-48 rounded-2xl bg-slate-100 animate-pulse" />)}</div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            <div>
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Категории</div>
+              <ul className="space-y-1">
+                {tree.map(r=>(
+                  <li key={r.id}>
+                    <button className={`w-full text-left rounded-xl px-3 py-2 hover:bg-slate-100 ${r.id===rootId?'bg-slate-100':''}`}
+                      onMouseEnter={()=>{ setRootId(r.id); setChildId(null) }}
+                      onClick={()=>goCat(r.slug)}>{r.name}</button>
+                  </li>
+                ))}
+              </ul>
             </div>
-
-            {/* L2 */}
-            <div className="space-y-2">
-              {level1.flatMap(l1 => (l1.children || [])).slice(0, 12).map(l2 => (
-                <div key={l2.id}>
-                  <Link to={`/catalog?cat=${l2.slug}`} className="hover:underline">{l2.name}</Link>
-                </div>
-              ))}
+            <div>
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Подкатегории</div>
+              <ul className="grid grid-cols-1 gap-1 md:grid-cols-2">
+                {(activeRoot?.children||[]).map(c=>(
+                  <li key={c.id}>
+                    <button className={`w-full text-left rounded-xl px-3 py-2 hover:bg-slate-100 ${c.id===childId?'bg-slate-100':''}`}
+                      onMouseEnter={()=>setChildId(c.id)}
+                      onClick={()=>goCat(c.slug)}>{c.name}</button>
+                  </li>
+                ))}
+              </ul>
             </div>
-
-            {/* L3 */}
-            <div className="space-y-2">
-              {level1.flatMap(l1 => (l1.children || [])).flatMap(l2 => (l2.children || [])).slice(0, 18).map(l3 => (
-                <A key={l3.id} href={`/catalog?cat=${l3.slug}`}>{l3.name}</A>
-              ))}
+            <div>
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Разделы</div>
+              <ul className="grid grid-cols-1 gap-1 md:grid-cols-2">
+                {(activeChild?.children||[]).map(g=>(
+                  <li key={g.id}>
+                    <button className="w-full text-left rounded-xl px-3 py-2 hover:bg-slate-100" onClick={()=>goCat(g.slug)}>{g.name}</button>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
-          {level1.length === 0 && (
-            <div className="text-sm text-slate-500">Категории пока не добавлены</div>
-          )}
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

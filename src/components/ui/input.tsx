@@ -1,21 +1,5 @@
-import * as React from 'react'
 import { cn } from '@/lib/utils'
-
-export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {}
-
-export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type, ...props }, ref) => {
-    return (
-      <input
-        type={type}
-        className={cn(
-          'field w-full',
-          className
-        )}
-        ref={ref}
-        {...props}
-      />
-    )
-  }
-)
-Input.displayName = 'Input'
+export function Input({ className='', ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
+  return <input className={cn('input', className)} {...props} />
+}
+export default Input
