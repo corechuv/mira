@@ -44,7 +44,6 @@ function Layout() {
 }
 
 export const router = createBrowserRouter([
-  { path: '/cart', element: <Cart /> },
   {
     path: '/admin',
     element: <AdminGuard><AdminLayout /></AdminGuard>,

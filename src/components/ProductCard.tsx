@@ -1,30 +1,45 @@
 import { Link } from 'react-router-dom'
-import { formatPrice } from '@/lib/utils'
 import { useCart } from '@/store/cart'
+import { useFavorites } from '@/store/favorites'
+import { formatPrice, percentOff } from '@/lib/utils'
 
-export default function ProductCard({ product }: { product: any }) {
-  const { add } = useCart()
-  const p = product || {}
-  const title = p.title || 'Товар'
-  const img = p.image || p.img || '/icons/mira.svg'
-  const priceNum = Number(p.price || 0)
-  const href = `/product/${encodeURIComponent(p.slug || p.id || '')}`
+type P = { product: any }
 
-  const handleAdd = () => p.id && add(p, 1)
+export default function ProductCard({ product }: P) {
+  const cart = useCart()
+  const fav = useFavorites()
+
+  const id = product?.id
+  const slug = product?.slug || id
+  const title = product?.title || 'Товар'
+  const img = product?.image || product?.img || '/icons/mira.svg'
+  const price = Number(product?.price || 0)
+  const old = Number(product?.oldPrice ?? product?.old_price ?? 0)
+  const discount = old > price ? percentOff(old, price) : 0
+
+  const added = !!(fav?.ids || []).includes(id)
+
+  const addToCart = () => cart.add?.({ id, slug, title, price, qty: 1, image: img })
+  const toggleFav = () => fav.toggle?.(id)
 
   return (
-    <div className="card overflow-hidden p-0">
-      <Link to={href} className="block" state={{ product }}>
-        <div className="aspect-square w-full overflow-hidden">
-          <img src={img} alt={title} className="h-full w-full object-cover transition-transform duration-300 hover:scale-[1.04]" loading="lazy" />
-        </div>
+    <div className="card group">
+      <Link to={`/product/${encodeURIComponent(slug)}`} className="block aspect-[3/4] overflow-hidden rounded-2xl bg-slate-100">
+        <img src={img} alt={title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
       </Link>
-      <div className="space-y-2 p-3">
-        <Link to={href} className="line-clamp-2 text-[15px] font-medium leading-snug" state={{ product }}>{title}</Link>
+      <div className="mt-2 space-y-1">
+        <Link to={`/product/${encodeURIComponent(slug)}`} className="line-clamp-2 text-sm font-medium hover:underline">
+          {title}
+        </Link>
         <div className="flex items-baseline gap-2">
-          <div className="text-base font-semibold">{formatPrice(priceNum)}</div>
+          <div className="text-base font-semibold">{formatPrice(price)}</div>
+          {old > price && <div className="text-sm text-slate-500 line-through">{formatPrice(old)}</div>}
+          {discount > 0 && <span className="chip -ml-1">-{discount}%</span>}
         </div>
-        <button className="btn-primary w-full" onClick={handleAdd} disabled={!p.id}>В корзину</button>
+        <div className="flex items-center gap-2">
+          <button className="btn-primary flex-1" onClick={addToCart}>В корзину</button>
+          <button aria-label="Избранное" className={`chip ${added ? 'bg-black text-white' : ''}`} onClick={toggleFav}>❤</button>
+        </div>
       </div>
     </div>
   )
