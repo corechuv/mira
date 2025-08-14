@@ -1,31 +1,93 @@
-import { Select } from './ui/select'
 import { useMemo } from 'react'
 
-export type Filters = { q?: string; category?: string; brand?: string; sort?: string; priceMin?: string; priceMax?: string }
+type Props = {
+  q: string
+  setQ: (v: string) => void
+  brand: string | undefined
+  setBrand: (v: string) => void
+  priceMin?: number
+  priceMax?: number
+  setPrice: (min?: number, max?: number) => void
+  allBrands?: string[] | null
+}
 
-export default function Filters({ value, onChange, allBrands }: { value: Filters; onChange: (v: Filters) => void; allBrands: string[] }) {
-  const brands = useMemo(() => ['Все бренды', ...allBrands], [allBrands])
+export default function Filters({
+  q,
+  setQ,
+  brand,
+  setBrand,
+  priceMin,
+  priceMax,
+  setPrice,
+  allBrands = [],
+}: Props) {
+  const brands = useMemo<string[]>(
+    () =>
+      Array.isArray(allBrands)
+        ? Array.from(new Set(allBrands.filter(Boolean))).sort((a, b) =>
+            a.localeCompare(b),
+          )
+        : [],
+    [allBrands],
+  )
+
+  const onMin = (e: React.ChangeEvent<HTMLInputElement>) =>
+    setPrice(e.target.value ? Number(e.target.value) : undefined, priceMax)
+  const onMax = (e: React.ChangeEvent<HTMLInputElement>) =>
+    setPrice(priceMin, e.target.value ? Number(e.target.value) : undefined)
+
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-6">
-      <input className=" field " placeholder="Поиск…"
-        value={value.q ?? ''} onChange={e => onChange({ ...value, q: e.target.value })} />
-      <Select value={value.category ?? ''} onChange={e => onChange({ ...value, category: e.target.value })}>
-        <option value="">Все категории</option>
-        <option value="skincare">Уход за кожей</option>
-        <option value="makeup">Макияж</option>
-        <option value="haircare">Волосы</option>
-      </Select>
-      <Select value={value.brand ?? ''} onChange={e => onChange({ ...value, brand: e.target.value })}>
-        {brands.map((b,i)=><option key={i} value={i===0?'':b}>{b}</option>)}
-      </Select>
-      <Select value={value.sort ?? ''} onChange={e => onChange({ ...value, sort: e.target.value })}>
-        <option value="">Сортировка</option>
-        <option value="price-asc">Сначала дешевле</option>
-        <option value="price-desc">Сначала дороже</option>
-        <option value="rating-desc">По рейтингу</option>
-      </Select>
-      <input className=" field " type="number" placeholder="Цена от" value={value.priceMin ?? ''} onChange={e => onChange({ ...value, priceMin: e.target.value })} />
-      <input className=" field " type="number" placeholder="Цена до" value={value.priceMax ?? ''} onChange={e => onChange({ ...value, priceMax: e.target.value })} />
+    <div className="flex flex-wrap items-end gap-3">
+      <label className="flex flex-col gap-1">
+        <span className="text-xs text-slate-500">Поиск</span>
+        <input
+          className="input w-56"
+          placeholder="Название, бренд…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+      </label>
+
+      <label className="flex flex-col gap-1">
+        <span className="text-xs text-slate-500">Бренд</span>
+        <select
+          className="input w-48"
+          value={brand || ''}
+          onChange={(e) => setBrand(e.target.value || '')}
+        >
+          <option value="">Все бренды</option>
+          {brands.map((b) => (
+            <option key={b} value={b}>
+              {b}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <div className="flex items-end gap-2">
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-slate-500">Цена от</span>
+          <input
+            className="input w-28"
+            type="number"
+            min={0}
+            step="0.01"
+            value={priceMin ?? ''}
+            onChange={onMin}
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-slate-500">до</span>
+          <input
+            className="input w-28"
+            type="number"
+            min={0}
+            step="0.01"
+            value={priceMax ?? ''}
+            onChange={onMax}
+          />
+        </label>
+      </div>
     </div>
   )
 }

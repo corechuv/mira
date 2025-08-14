@@ -1,41 +1,58 @@
 import { Link } from 'react-router-dom'
-import { Card, CardBody } from './ui/card'
-import { Button } from './ui/button'
-import { Badge } from './ui/badge'
-import { Product } from '@/data/products'
 import { useCart } from '@/store/cart'
-import Price from './Price'
-import Stars from './Stars'
-import SmartImage from './SmartImage'
-import { motion } from 'framer-motion'
-import CardActions from './CardActions'
+import { formatPrice } from '@/lib/utils'
 
-export default function ProductCard({ p }: { p: Product }) {
-  const add = useCart(s => s.add)
-  const hasDiscount = p.oldPrice && p.oldPrice > p.price
+type Props = { product: any }
+
+export default function ProductCard({ product }: Props) {
+  if (!product) return null
+  const cart = useCart()
+  const title: string = product.title ?? 'Без названия'
+  const slug: string = product.slug ?? ''
+  const id: string | undefined = product.id
+  const href = slug ? `/product/${encodeURIComponent(slug)}` : (id ? `/product/${id}` : '#')
+
+  const imgs: string[] = Array.isArray(product.images) ? product.images : []
+  const img = imgs[0] || 'https://placehold.co/600x600/png?text=Mira'
+  const priceNum = Number(product.price ?? 0)
+
+  const handleAdd = () => {
+    cart.add({
+      id: product.id,
+      slug: product.slug,
+      title: product.title,
+      price: priceNum || 0,
+      image: img,
+      qty: 1,
+    })
+  }
+
   return (
-    <motion.div initial={{opacity:0, y:10}} animate={{opacity:1, y:0}} transition={{duration:.2}}>
-      <Card className="group relative">
-        <CardActions id={p.id} />
-        {hasDiscount && <span className="absolute left-3 top-3 badge bg-rose-100 text-rose-700 z-10">SALE</span>}
-        <Link to={`/product/${p.id}`} aria-label={p.title}>
-          <SmartImage src={p.images[0]} alt={p.title} className="rounded-2xl-b-none" />
+    <div className="card overflow-hidden p-0">
+      <Link to={href} className="block" state={{ product }}>
+        <div className="aspect-square w-full overflow-hidden">
+          <img
+            src={img}
+            alt={title}
+            className="h-full w-full object-cover transition-transform duration-300 hover:scale-[1.03]"
+            loading="lazy"
+          />
+        </div>
+      </Link>
+
+      <div className="space-y-2 p-3">
+        <Link to={href} className="line-clamp-2 text-[15px] font-medium leading-snug" state={{ product }}>
+          {title}
         </Link>
-        <CardBody>
-          <div className="mb-2 flex items-center justify-between">
-            <Badge>{p.brand}</Badge>
-            <div className="flex items-center gap-2 text-xs text-slate-500">
-              <Stars rating={p.rating} className="text-xs" />
-              <span>({p.ratingCount ?? 0})</span>
-            </div>
-          </div>
-          <Link to={`/product/${p.id}`} className="line-clamp-2 font-medium hover:underline">{p.title}</Link>
-          <div className="mt-3">
-            <Price price={p.price} oldPrice={p.oldPrice} />
-          </div>
-          <Button onClick={() => add(p)} className="mt-3 w-full">В корзину</Button>
-        </CardBody>
-      </Card>
-    </motion.div>
+
+        <div className="flex items-baseline gap-2">
+          <div className="text-base font-semibold">{formatPrice(priceNum)}</div>
+        </div>
+
+        <button className="btn w-full" onClick={handleAdd} disabled={!product.id}>
+          В корзину
+        </button>
+      </div>
+    </div>
   )
 }
