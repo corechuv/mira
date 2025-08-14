@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { fetchCategories, type CatNode } from '@/lib/categories'
-import { fetchProducts, type ProductRow, fetchProductsByCategorySlug } from '@/lib/products'
+import { fetchProducts, type ProductRow } from '@/lib/products'
 import ProductCard from '@/components/ProductCard'
 import Filters from '@/components/Filters'
 
@@ -22,9 +22,7 @@ export default function Catalog() {
   useEffect(() => {
     (async () => {
       const { items, total } = await fetchProducts({ q, catId: cat || undefined, sort, offset, limit: pageSize })
-      setItems(items);
-  const params = new URLSearchParams(location.search); const catSlug = params.get('cat') || '';
- setTotal(total)
+      setItems(items); setTotal(total)
     })()
   }, [q, cat, sort, page])
 
