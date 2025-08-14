@@ -4,7 +4,7 @@
   "version": "1.1.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"npm:server:dev\" \"vite --port 5173 --strictPort\"",
+    "dev": "vite --open",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext .ts,.tsx",
@@ -12,7 +12,6 @@
     "test": "vitest --ui",
     "test:run": "vitest run",
     "sitemap": "node scripts/gen-sitemap.mjs",
-    "server:dev": "tsx server/index.ts",
     "dev:full": "concurrently \"npm:server:dev\" \"vite\"",
     "build:server": "tsc -p server/tsconfig.json",
     "start": "node server/dist/index.js",
@@ -20,7 +19,9 @@
     "prepare": "husky install",
     "dev:nf": "netlify dev",
     "deploy:nf": "netlify deploy --build --prod",
-    "build:ci": "npm run typecheck && vite build"
+    "build:ci": "npm run typecheck && vite build",
+    "dev:vite": "vite",
+    "dev:nl": "netlify dev -c \"vite --port 5173\""
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",

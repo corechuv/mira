@@ -1,17 +1,14 @@
-import React, { Suspense } from 'react'
+import React from 'react'
 import ReactDOM from 'react-dom/client'
-import App from './App'
+import App from './App.tsx'
 import './index.css'
-import { registerSW } from 'virtual:pwa-register'
 
-registerSW({ immediate: true })
-
-function Fallback() { return <div style={{padding:'2rem',textAlign:'center'}}>Загрузка…</div> }
-
-ReactDOM.createRoot(document.getElementById('root')!).render(
+const el = document.getElementById('root')
+if (!el) {
+  throw new Error('Root element #root not found in index.html')
+}
+ReactDOM.createRoot(el).render(
   <React.StrictMode>
-    <Suspense fallback={<Fallback />}>
-      <App />
-    </Suspense>
-  </React.StrictMode>,
+    <App />
+  </React.StrictMode>
 )

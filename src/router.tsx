@@ -1,9 +1,17 @@
+import AdminGuard from '@/components/AdminGuard'
+import AdminLayout from '@/admin/AdminLayout'
+import Dashboard from '@/admin/Dashboard'
+import CategoriesAdmin from '@/admin/Categories'
+import ProductsAdmin from '@/admin/Products'
+import ReviewsAdmin from '@/admin/Reviews'
+import OrdersAdmin from '@/admin/Orders'
 import { createBrowserRouter, Outlet } from 'react-router-dom'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import Loader from '@/components/Loader'
 import { Suspense, lazy } from 'react'
+import Settings from './admin/Settings'
 
 const Home = lazy(()=>import('@/pages/Home'))
 const Catalog = lazy(()=>import('@/pages/Catalog'))
@@ -43,7 +51,8 @@ export const router = createBrowserRouter([
       { path: 'categories', element: <CategoriesAdmin /> },
       { path: 'products', element: <ProductsAdmin /> },
       { path: 'reviews', element: <ReviewsAdmin /> },
-      { path: 'orders', element: <OrdersAdmin /> }
+      { path: 'orders', element: <OrdersAdmin /> },
+      { path: 'settings', element: <Settings /> }
     ]
   },
   {
