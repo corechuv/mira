@@ -49,8 +49,8 @@ export const router = createBrowserRouter([
     element: <AdminGuard><AdminLayout /></AdminGuard>,
     children: [
       { index: true, element: <Dashboard /> },
-      { path: 'cart', element: <(await import('@/pages/Cart')).default /> },
-      { path: 'categories', element: <CategoriesAdmin /> },
+      { path: 'cart', element: <Cart /> },
+            { path: 'categories', element: <CategoriesAdmin /> },
       { path: 'products', element: <ProductsAdmin /> },
       { path: 'reviews', element: <ReviewsAdmin /> },
       { path: 'orders', element: <OrdersAdmin /> },
