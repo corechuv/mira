@@ -122,3 +122,15 @@ export async function fetchRelated(categoryId: string | null | undefined, skipId
   if (error) return []
   return (data || []).slice(0, limit) as ProductRow[]
 }
+
+export async function fetchProductsByIds(ids: string[]): Promise<ProductRow[]> {
+  const list = (ids||[]).filter(Boolean)
+  if (list.length === 0) return []
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .in('id', list)
+    .order('created_at', { ascending: false })
+  if (error) { console.warn('fetchProductsByIds:', error.message); return [] }
+  return (data || []) as ProductRow[]
+}

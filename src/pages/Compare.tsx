@@ -1,56 +1,83 @@
-import { useCompare } from '@/store/compare'
-import { products } from '@/data/products'
-import SmartImage from '@/components/SmartImage'
-import { formatPrice } from '@/lib/utils'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import ProductCard from '@/components/ProductCard'
+import { useCompare } from '@/store/compare'
+import { supabase } from '@/lib/supabase'
+import { fetchProductsByIds, type ProductRow } from '@/lib/products'
+
+function isUUID(v: string) {
+  return /^[0-9a-fA-F-]{32,}$/.test(v || '')
+}
 
 export default function Compare() {
-  const cmp = useCompare()
-  const items = products.filter(p => cmp.ids.includes(p.id))
-  const cols = items.length || 1
-  return (
-    <div className="container-narrow mt-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Сравнение</h1>
-        {items.length>0 && <button onClick={()=>cmp.clear()} className="btn btn-outline">Очистить</button>}
+  const { ids = [], remove, clear } = useCompare() as { ids: string[]; remove: (id:string)=>void; clear: ()=>void }
+  const [items, setItems] = useState<ProductRow[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      setLoading(true)
+      try {
+        const byIdKeys = ids.filter(isUUID)
+        const bySlugKeys = ids.filter(x => !isUUID(x))
+
+        const [byId, bySlugResp] = await Promise.all([
+          fetchProductsByIds(byIdKeys),
+          bySlugKeys.length
+            ? supabase.from('products').select('*').in('slug', bySlugKeys)
+            : Promise.resolve({ data: [] as any[] })
+        ])
+
+        const bySlug = ((bySlugResp as any).data || []) as ProductRow[]
+        const all = [...byId, ...bySlug]
+
+        // Соберём в исходном порядке ids (находим по id или slug)
+        const ordered: ProductRow[] = ids.map(k => all.find(p => p.id === k || p.slug === k)!).filter(Boolean) as ProductRow[]
+        if (alive) setItems(ordered)
+      } catch (e) {
+        console.warn('Compare.load error:', (e as any)?.message || e)
+        if (alive) setItems([])
+      } finally {
+        if (alive) setLoading(false)
+      }
+    })()
+    return () => { alive = false }
+  }, [ids])
+
+  if ((ids || []).length === 0) {
+    return (
+      <div className="container py-6">
+        <div className="panel p-6 text-slate-600">
+          Список сравнения пуст. Перейдите в <Link to="/catalog" className="underline">каталог</Link>.
+        </div>
       </div>
-      {items.length===0 ? <p className="text-slate-600">Добавьте товары к сравнению значком «весы» ⚖</p> :
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] border-separate border-spacing-y-2">
-          <tbody>
-            <tr>
-              {items.map(p=>(
-                <td key={p.id} className="align-top">
-                  <Link to={`/product/${p.id}`} className="block rounded-2xl border p-3 hover:shadow">
-                    <SmartImage src={p.images[0]} alt={p.title} />
-                    <div className="mt-2 font-medium line-clamp-2">{p.title}</div>
-                  </Link>
-                </td>
-              ))}
-            </tr>
-            <Row label="Цена" cols={cols}>{items.map(p=>formatPrice(p.price)).join('||')}</Row>
-            <Row label="Категория" cols={cols}>{items.map(p=>humanCategory(p.category)).join('||')}</Row>
-            <Row label="Бренд" cols={cols}>{items.map(p=>p.brand).join('||')}</Row>
-            <Row label="Объём" cols={cols}>{items.map(p=>p.volume ?? '—').join('||')}</Row>
-            <Row label="Состав (ключевое)" cols={cols}>{items.map(p=>(p.ingredients?.slice(0,3).join(', ')||'—')).join('||')}</Row>
-            <Row label="SKU" cols={cols}>{items.map(p=>p.sku).join('||')}</Row>
-            <Row label="В наличии" cols={cols}>{items.map(p=>p.stock>0?'Да':'Нет').join('||')}</Row>
-          </tbody>
-        </table>
-      </div>}
+    )
+  }
+
+  return (
+    <div className="container py-6">
+      <div className="mb-4 flex items-center justify-between">
+        <h1 className="text-xl md:text-2xl font-semibold">Сравнение</h1>
+        <button className="btn-ghost" onClick={clear}>Очистить</button>
+      </div>
+
+      {loading ? (
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          {Array.from({ length: ids.length || 4 }).map((_, i) => (
+            <div key={i} className="card h-[320px] animate-pulse bg-slate-100" />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          {items.map(p => (
+            <div key={p.id} className="relative">
+              <ProductCard product={p} />
+              <button className="absolute right-2 top-2 chip" onClick={() => remove(p.id)}>×</button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
-}
-
-function Row({ label, cols, children }: { label: string; cols: number; children: string }) {
-  const values = children.split('||')
-  return (
-    <tr>
-      {values.map((v,i)=><td key={i} className="align-top"><div className="rounded-xl border p-3 text-sm"><div className="mb-1 text-xs text-slate-500">{i===0?label:''}</div><div>{v}</div></div></td>)}
-    </tr>
-  )
-}
-
-function humanCategory(c: 'skincare'|'makeup'|'haircare') {
-  return c === 'skincare' ? 'Уход за кожей' : c === 'makeup' ? 'Макияж' : 'Волосы'
 }

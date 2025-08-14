@@ -79,7 +79,7 @@ export default function Product() {
               onChange={e => setQty(Math.max(1, Number(e.target.value)||1))}
               className="input w-24 text-center"
             />
-            <button className="btn" onClick={addToCart} className="btn-primary">В корзину</button>
+            <button className="btn-primary" onClick={addToCart}>В корзину</button>
           </div>
         </div>
       </div>
