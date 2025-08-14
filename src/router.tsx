@@ -3,6 +3,7 @@ import AdminLayout from '@/admin/AdminLayout'
 import Dashboard from '@/admin/Dashboard'
 import CategoriesAdmin from '@/admin/Categories'
 import ProductsAdmin from '@/admin/Products'
+import Cart from '@/pages/Cart'
 import ReviewsAdmin from '@/admin/Reviews'
 import OrdersAdmin from '@/admin/Orders'
 import { createBrowserRouter, Outlet } from 'react-router-dom'
@@ -48,6 +49,7 @@ export const router = createBrowserRouter([
     element: <AdminGuard><AdminLayout /></AdminGuard>,
     children: [
       { index: true, element: <Dashboard /> },
+      { path: 'cart', element: <(await import('@/pages/Cart')).default /> },
       { path: 'categories', element: <CategoriesAdmin /> },
       { path: 'products', element: <ProductsAdmin /> },
       { path: 'reviews', element: <ReviewsAdmin /> },

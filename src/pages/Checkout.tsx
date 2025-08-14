@@ -1,171 +1,214 @@
-import { useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useCart } from '@/store/cart'
-import { useAuth } from '@/store/auth'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { supabase } from '@/lib/supabase'
 import { formatPrice } from '@/lib/utils'
-import { toast } from 'sonner'
 
-type ShippingType = 'standard' | 'express'
-type PaymentType = 'card' | 'cod'
-
-const COUPONS: Record<string, number> = { MIRA10: 0.1 }
+type ShippingKind = 'standard' | 'express'
+type PaymentKind = 'card' | 'cod'
 
 export default function Checkout() {
-  const { user } = useAuth()
-  const items = useCart(s => s.items)
-  const clear = useCart(s => s.clear)
-
-  const [shipping, setShipping] = useState<ShippingType>('standard')
-  const [payment, setPayment] = useState<PaymentType>('card')
-  const [coupon, setCoupon] = useState('')
-  const [contact, setContact] = useState({ name: '', email: user?.email || '', phone: '' })
-  const [address, setAddress] = useState({ line1: '', city: '', zip: '' })
+  const cart = useCart()
+  const items = cart.items || []
+  const [shipping, setShipping] = useState<ShippingKind>('standard')
+  const [payment, setPayment] = useState<PaymentKind>('card')
+  const [contact, setContact] = useState({ name: '', email: '', phone: '' })
+  const [addr, setAddr] = useState({ line1: '', city: '', postal_code: '', country: 'DE' })
+  const [placing, setPlacing] = useState(false)
   const [placedId, setPlacedId] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
 
-  const totalItems = useMemo(
-    () => items.reduce((sum, i) => sum + i.price * i.qty, 0),
-    [items]
-  )
+  // текущий пользователь (email подставим по возможности)
+  useEffect(() => {
+    let alive = true
+    supabase.auth.getUser().then(({ data }) => {
+      const email = data?.user?.email || ''
+      if (alive && email) setContact(c => ({ ...c, email }))
+    })
+    return () => { alive = false }
+  }, [])
+
   const shippingCost = shipping === 'express' ? 5.99 : 2.99
-  const discount = useMemo(() => {
-    const code = coupon.trim().toUpperCase()
-    const rate = COUPONS[code] || 0
-    return Math.round((totalItems * rate) * 100) / 100
-  }, [coupon, totalItems])
+  const subtotal = useMemo(() => (items || []).reduce((s: number, it: any) => {
+    const qty = Number(it.qty || 0)
+    const price = Number(it.price || 0)
+    return s + qty * price
+  }, 0), [items])
+  const total = Number((subtotal + shippingCost).toFixed(2))
 
-  const total = Math.max(0, Math.round(((totalItems + shippingCost) - discount) * 100) / 100)
-
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!items.length) return toast.error('Корзина пуста')
-    if (!contact.email) return toast.error('Укажите e-mail')
-
-    setLoading(true)
+  async function place() {
+    if (!items.length) return
+    setPlacing(true)
     try {
+      const { data: auth } = await supabase.auth.getUser()
+      const user_id = auth?.user?.id || null
+
       const payload = {
-        items: items.map(i => ({ title: i.title, price: i.price, qty: i.qty })),
-        contact: { ...contact, address },
-        shipping: { type: shipping, cost: shippingCost },
-        user_id: user?.id || null
+        items: items.map((it: any) => ({
+          id: it.id, title: it.title, price: Number(it.price || 0), qty: Number(it.qty || 1), image: it.image || it.img || null, slug: it.slug || null
+        })),
+        contact,
+        shipping: { kind: shipping, cost: shippingCost, address: addr },
+        user_id
       }
 
       if (payment === 'card') {
-        const r = await fetch('/api/create-checkout-session', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+        // Stripe Checkout
+        const res = await fetch('/api/create-checkout-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
         })
-        const data = await r.json()
-        if (!r.ok) throw new Error(data?.error || 'Stripe error')
-        if (data?.url) {
-          window.location.href = data.url
+        if (!res.ok) throw new Error('create-checkout-session failed')
+        const json = await res.json()
+        if (json?.url) {
+          window.location.href = json.url
           return
         }
-        throw new Error('Session URL not found')
-      } else {
-        const r = await fetch('/api/place-order', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...payload, amount: total })
-        })
-        const data = await r.json()
-        if (!r.ok) throw new Error(data?.error || 'Order error')
-        setPlacedId(data.id || 'MIRA-' + Math.random().toString(36).slice(2,8).toUpperCase())
-        clear()
-        toast.success('Bestellung aufgegeben')
+        // если по какой-то причине URL нет — попробуем сохранить заказ локально
       }
-    } catch (err: any) {
-      console.error(err)
-      toast.error(err?.message || 'Fehler beim Bestellen')
+
+      // наложенный или фоллбэк
+      const res2 = await fetch('/api/place-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      if (!res2.ok) throw new Error('place-order failed')
+      const j2 = await res2.json()
+      setPlacedId(j2?.id || null)
+      cart.clear?.()
+    } catch (e: any) {
+      console.warn('checkout error:', e?.message || e)
+      alert('Не удалось оформить заказ. Попробуйте позже.')
     } finally {
-      setLoading(false)
+      setPlacing(false)
     }
   }
 
-  if (items.length === 0 && !placedId) {
-    return <div className="container-narrow mt-10 text-center text-slate-700">Корзина пуста</div>
+  if (!items.length && !placedId) {
+    return (
+      <div className="container py-6 md:py-10">
+        <div className="panel p-6 text-slate-600">
+          Корзина пуста. Перейдите в <Link to="/cart" className="underline">корзину</Link> или <Link className="underline" to="/catalog">каталог</Link>.
+        </div>
+      </div>
+    )
   }
 
   if (placedId) {
     return (
-      <div className="container-narrow mt-10 text-center">
-        <h1 className="text-2xl font-semibold">Спасибо!</h1>
-        <p className="mt-2 text-slate-700">Ваш заказ <b>{placedId}</b> принят.</p>
+      <div className="container py-6 md:py-10">
+        <div className="panel p-6">
+          <h1 className="mb-2 text-xl md:text-2xl font-semibold">Спасибо!</h1>
+          <p className="text-slate-700">Заказ <b>{placedId}</b> сохранён. Мы отправим подтверждение на почту.</p>
+          <div className="mt-4">
+            <Link to="/catalog" className="btn-outline">Вернуться в каталог</Link>
+          </div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="container-narrow mt-6">
-      <h1 className="text-2xl font-semibold">Оформление заказа</h1>
-
-      <form onSubmit={onSubmit} className="mt-6 grid gap-6 md:grid-cols-3">
-        {/* Контакты */}
-        <section className="md:col-span-2 rounded-2xl border p-4">
-          <h2 className="mb-3 text-lg font-medium">Контакты</h2>
+    <div className="container py-6 md:py-10">
+      <h1 className="mb-4 text-xl md:text-2xl font-semibold">Оформление заказа</h1>
+      <div className="grid gap-6 md:grid-cols-[1fr_360px]">
+        {/* Форма */}
+        <div className="panel p-4 space-y-4">
           <div className="grid gap-3 md:grid-cols-2">
-            <Input value={contact.name} onChange={e=>setContact({...contact, name:e.target.value})} placeholder="Имя" />
-            <Input value={contact.email} onChange={e=>setContact({...contact, email:e.target.value})} placeholder="E-Mail" type="email" />
-            <Input value={contact.phone} onChange={e=>setContact({...contact, phone:e.target.value})} placeholder="Телефон" />
-            <Input value={address.line1} onChange={e=>setAddress({...address, line1:e.target.value})} placeholder="Адрес" />
-            <Input value={address.city} onChange={e=>setAddress({...address, city:e.target.value})} placeholder="Город" />
-            <Input value={address.zip} onChange={e=>setAddress({...address, zip:e.target.value})} placeholder="PLZ" />
+            <div>
+              <label className="text-sm text-slate-600">Имя и фамилия</label>
+              <input className="input" value={contact.name} onChange={e=>setContact(c=>({...c, name:e.target.value}))} />
+            </div>
+            <div>
+              <label className="text-sm text-slate-600">Email</label>
+              <input type="email" className="input" value={contact.email} onChange={e=>setContact(c=>({...c, email:e.target.value}))} />
+            </div>
+            <div>
+              <label className="text-sm text-slate-600">Телефон</label>
+              <input className="input" value={contact.phone} onChange={e=>setContact(c=>({...c, phone:e.target.value}))} />
+            </div>
           </div>
 
-          <h2 className="mt-6 mb-2 text-lg font-medium">Доставка</h2>
-          <div className="flex flex-wrap gap-3">
-            <label className={`btn btn-outline ${shipping==='standard'?'border-brand-300 text-brand-700':''}`}>
-              <input type="radio" className="sr-only" checked={shipping==='standard'} onChange={()=>setShipping('standard')} /> Standard — {formatPrice(2.99)}
-            </label>
-            <label className={`btn btn-outline ${shipping==='express'?'border-brand-300 text-brand-700':''}`}>
-              <input type="radio" className="sr-only" checked={shipping==='express'} onChange={()=>setShipping('express')} /> Express — {formatPrice(5.99)}
-            </label>
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="md:col-span-2">
+              <label className="text-sm text-slate-600">Адрес</label>
+              <input className="input" value={addr.line1} onChange={e=>setAddr(a=>({...a, line1:e.target.value}))} />
+            </div>
+            <div>
+              <label className="text-sm text-slate-600">Город</label>
+              <input className="input" value={addr.city} onChange={e=>setAddr(a=>({...a, city:e.target.value}))} />
+            </div>
+            <div>
+              <label className="text-sm text-slate-600">Индекс</label>
+              <input className="input" value={addr.postal_code} onChange={e=>setAddr(a=>({...a, postal_code:e.target.value}))} />
+            </div>
+            <div>
+              <label className="text-sm text-slate-600">Страна</label>
+              <input className="input" value={addr.country} onChange={e=>setAddr(a=>({...a, country:e.target.value}))} />
+            </div>
           </div>
 
-          <h2 className="mt-6 mb-2 text-lg font-medium">Оплата</h2>
-          <div className="flex flex-wrap gap-3">
-            <label className={`btn btn-outline ${payment==='card'?'border-brand-300 text-brand-700':''}`}>
-              <input type="radio" className="sr-only" checked={payment==='card'} onChange={()=>setPayment('card')} /> Karte (Stripe)
-            </label>
-            <label className={`btn btn-outline ${payment==='cod'?'border-brand-300 text-brand-700':''}`}>
-              <input type="radio" className="sr-only" checked={payment==='cod'} onChange={()=>setPayment('cod')} /> Zahlung bei Lieferung
-            </label>
+          <div className="grid gap-3 md:grid-cols-2">
+            <div>
+              <label className="text-sm text-slate-600">Доставка</label>
+              <select className="input" value={shipping} onChange={e=>setShipping(e.target.value as ShippingKind)}>
+                <option value="standard">Стандарт — 2,99 €</option>
+                <option value="express">Экспресс — 5,99 €</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-sm text-slate-600">Оплата</label>
+              <select className="input" value={payment} onChange={e=>setPayment(e.target.value as PaymentKind)}>
+                <option value="card">Картой (Stripe)</option>
+                <option value="cod">При получении</option>
+              </select>
+            </div>
           </div>
-        </section>
+
+          <div className="text-sm text-slate-600">
+            Нажимая «Оформить», вы соглашаетесь с нашими <Link to="/policy" className="underline">условиями</Link>.
+          </div>
+
+          <div>
+            <button className="btn-primary" onClick={place} disabled={placing || !items.length}>
+              {placing ? 'Оформляем…' : 'Оформить заказ'}
+            </button>
+          </div>
+        </div>
 
         {/* Сводка */}
-        <aside className="rounded-2xl border p-4">
-          <h2 className="mb-3 text-lg font-medium">Сводка</h2>
-          <ul className="space-y-2 text-sm">
-            {items.map(i=>(
-              <li key={i.id} className="flex justify-between">
-                <span className="line-clamp-1">{i.title} × {i.qty}</span>
-                <span>{formatPrice(i.price * i.qty)}</span>
+        <aside className="panel p-4 h-max sticky top-[calc(var(--header-h,64px)+16px)]">
+          <div className="mb-3 text-sm text-slate-600">Товары ({items.length})</div>
+          <ul className="mb-4 space-y-2">
+            {items.map((it: any) => (
+              <li key={it.id} className="flex items-center gap-3">
+                <div className="h-12 w-12 overflow-hidden rounded-xl bg-slate-100">
+                  <img src={it.image || it.img || '/icons/mira.svg'} alt={it.title} className="h-full w-full object-cover" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="line-clamp-1 text-sm">{it.title}</div>
+                  <div className="text-xs text-slate-600">{Number(it.qty||1)} × {formatPrice(Number(it.price||0))}</div>
+                </div>
+                <div className="text-sm font-medium">{formatPrice(Number(it.qty||1) * Number(it.price||0))}</div>
               </li>
             ))}
-            <li className="flex justify-between pt-2 border-t">
-              <span>Доставка ({shipping==='express'?'Express':'Standard'})</span>
-              <span>{formatPrice(shippingCost)}</span>
-            </li>
-            <li className="flex justify-between">
-              <span>Скидка</span>
-              <span>-{formatPrice(discount)}</span>
-            </li>
-            <li className="flex justify-between font-semibold pt-2 border-t">
-              <span>Итого</span>
-              <span>{formatPrice(total)}</span>
-            </li>
           </ul>
 
-          <div className="mt-4 flex gap-2">
-            <Input value={coupon} onChange={e=>setCoupon(e.target.value)} placeholder="Купон (например, MIRA10)" />
-            <button type="button" className="btn btn-outline" onClick={()=>setCoupon(coupon.trim().toUpperCase())}>ОК</button>
+          <div className="mb-2 flex items-center justify-between text-sm">
+            <span className="text-slate-600">Сумма</span>
+            <span className="font-medium">{formatPrice(subtotal)}</span>
           </div>
-
-          <Button type="submit" className="mt-4 w-full" disabled={loading}>
-            {loading ? 'Обработка…' : payment==='card' ? 'Оплатить' : 'Оформить'}
-          </Button>
-          <p className="mt-2 text-xs text-slate-500">Alle Preise inkl. MwSt.</p>
+          <div className="mb-2 flex items-center justify-between text-sm">
+            <span className="text-slate-600">Доставка</span>
+            <span className="font-medium">{formatPrice(shippingCost)}</span>
+          </div>
+          <div className="mt-3 border-t pt-3 flex items-center justify-between">
+            <span className="font-semibold">Итого</span>
+            <span className="text-lg font-semibold">{formatPrice(total)}</span>
+          </div>
         </aside>
-      </form>
+      </div>
     </div>
   )
 }
